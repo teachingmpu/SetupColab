@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MariaDB Setup Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f9;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1, h2 {
+      color: #444;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .output {
+      background: #f9f9f9;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MariaDB Setup Assistant</h1>
+
+    <!-- Step 1: Install MariaDB -->
+    <h2>Step 1: Install MariaDB</h2>
+    <p>To install MariaDB on your computer, follow these steps:</p>
+    <ul>
+      <li><strong>Windows:</strong> Download the installer from <a href="https://mariadb.org/download/" target="_blank">MariaDB's official website</a> and follow the installation wizard.</li>
+      <li><strong>Linux:</strong> Run <code>sudo apt-get install mariadb-server</code> in your terminal.</li>
+      <li><strong>macOS:</strong> Use Homebrew: <code>brew install mariadb</code>.</li>
+    </ul>
+
+    <!-- Step 2: Generate Root Password -->
+    <h2>Step 2: Generate Root Password</h2>
+    <button onclick="generateRootPassword()">Generate Root Password</button>
+    <div id="rootPasswordOutput" class="output"></div>
+
+    <!-- Step 3: Create Database -->
+    <h2>Step 3: Create Database</h2>
+    <input type="text" id="databaseName" placeholder="Enter database name">
+    <button onclick="createDatabase()">Create Database</button>
+    <div id="databaseOutput" class="output"></div>
+
+    <!-- Step 4: Create User and Password -->
+    <h2>Step 4: Create User and Password</h2>
+    <input type="text" id="username" placeholder="Enter username">
+    <input type="password" id="userPassword" placeholder="Enter password">
+    <button onclick="createUser()">Create User</button>
+    <div id="userOutput" class="output"></div>
+
+    <!-- Step 5: Python Connection Code -->
+    <h2>Step 5: Python Connection Code</h2>
+    <button onclick="generatePythonCode()">Generate Python Code</button>
+    <div id="pythonOutput" class="output"></div>
+
+    <!-- Error Handling -->
+    <div id="errorMessage" class="error"></div>
+  </div>
+
+  <script>
+    // Generate a random root password
+    function generateRootPassword() {
+      const password = Math.random().toString(36).slice(-12);
+      document.getElementById('rootPasswordOutput').innerHTML = `
+        <p><strong>Generated Root Password:</strong> ${password}</p>
+        <p><strong>SQL Command:</strong> <code>ALTER USER 'root'@'localhost' IDENTIFIED BY '${password}';</code></p>
+      `;
+      saveToLocalStorage('rootPassword', password);
+    }
+
+    // Create a database
+    function createDatabase() {
+      const dbName = document.getElementById('databaseName').value;
+      if (!dbName) {
+        showError("Please enter a database name.");
+        return;
+      }
+      const sql = `CREATE DATABASE ${dbName};`;
+      document.getElementById('databaseOutput').innerHTML = `
+        <p><strong>SQL Command:</strong> <code>${sql}</code></p>
+      `;
+      saveToLocalStorage('databaseSQL', sql);
+    }
+
+    // Create a user and grant privileges
+    function createUser() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('userPassword').value;
+      const dbName = document.getElementById('databaseName').value;
+      if (!username || !password || !dbName) {
+        showError("Please fill in all fields.");
+        return;
+      }
+      const sql = `
+        CREATE USER '${username}'@'localhost' IDENTIFIED BY '${password}';
+        GRANT ALL PRIVILEGES ON ${dbName}.* TO '${username}'@'localhost';
+        FLUSH PRIVILEGES;
+      `;
+      document.getElementById('userOutput').innerHTML = `
+        <p><strong>SQL Command:</strong> <code>${sql}</code></p>
+      `;
+      saveToLocalStorage('userSQL', sql);
+    }
+
+    // Generate Python connection code
+    function generatePythonCode() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('userPassword').value;
+      const dbName = document.getElementById('databaseName').value;
+      if (!username || !password || !dbName) {
+        showError("Please complete Steps 3 and 4 first.");
+        return;
+      }
+      const pythonCode = `
+import mariadb
+
+try:
+    conn = mariadb.connect(
+        user='${username}',
+        password='${password}',
+        host='localhost',
+        database='${dbName}'
+    )
+    cursor = conn.cursor()
+    print("Connected to MariaDB!")
+except mariadb.Error as e:
+    print(f"Error connecting to MariaDB: {e}")
+      `;
+      document.getElementById('pythonOutput').innerHTML = `
+        <p><strong>Python Code:</strong></p>
+        <pre>${pythonCode}</pre>
+      `;
+      saveToLocalStorage('pythonCode', pythonCode);
+    }
+
+    // Save data to local storage
+    function saveToLocalStorage(key, value) {
+      localStorage.setItem(key, value);
+    }
+
+    // Show error message
+    function showError(message) {
+      document.getElementById('errorMessage').innerText = message;
+    }
+  </script>
+</body>
+</html>
